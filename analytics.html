@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Deep Analytics - FilterTube</title>
+
+
+<link rel="icon" type="image/png" sizes="16x16" href="icon16.png">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+:root {
+  --bg:#121212;
+  --card:#1a1a2a;
+  --border:#2d2d3a;
+  --text:#f1f1f1;
+  --muted:#9ca3af;
+  --red:#ff0000;
+}
+
+body {
+  margin:0;
+  font-family:Segoe UI;
+  background:var(--bg);
+  color:var(--text);
+}
+
+.container {
+  max-width:1100px;
+  margin:auto;
+  padding:30px;
+}
+
+h1 { margin-bottom:5px; }
+p { color:var(--muted); }
+
+/* GRID */
+.grid {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:15px;
+  margin-top:20px;
+}
+
+.card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:18px;
+}
+
+.card h2 {
+  margin:0;
+  font-size:26px;
+}
+
+/* CHARTS */
+.chart-grid {
+  display:grid;
+  grid-template-columns:2fr 1fr;
+  gap:15px;
+  margin-top:25px;
+}
+
+.chart-box {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:20px;
+}
+
+.full {
+  margin-top:20px;
+}
+
+.small {
+  color:var(--muted);
+  font-size:12px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Deep Analytics</h1>
+<p>Real-time productivity insights</p>
+
+<!-- STATS -->
+<div class="grid" id="stats">
+  <div class="card"><h2>Loading...</h2><p class="small">Time Saved</p></div>
+  <div class="card"><h2>Loading...</h2><p class="small">Videos Blocked</p></div>
+  <div class="card"><h2>Loading...</h2><p class="small">Focus Score</p></div>
+</div>
+
+<!-- CHARTS -->
+<div class="chart-grid">
+
+  <div class="chart-box">
+    <h3>Productivity Trend</h3>
+    <canvas id="lineChart"></canvas>
+  </div>
+
+  <div class="chart-box">
+    <h3>Content Blocked</h3>
+    <canvas id="doughnutChart"></canvas>
+  </div>
+
+</div>
+
+<div class="chart-box full">
+  <h3>Daily Activity</h3>
+  <canvas id="barChart"></canvas>
+</div>
+
+</div>
+
+<script type="module">
+import { auth, db } from "./firebase.js";
+
+import {
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+
+import {
+  ref,
+  get
+} from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+
+let lineChart, doughnutChart, barChart;
+
+onAuthStateChanged(auth, async (user) => {
+
+  if (!user) {
+    window.location.href = "login.html";
+    return;
+  }
+
+  const snapshot = await get(
+    ref(db, "analytics/" + user.uid)
+  );
+
+  let data = snapshot.exists() ? snapshot.val() : null;
+
+  // ================= STATS =================
+  document.getElementById("stats").innerHTML = `
+    <div class="card">
+      <h2>${data?.timeSaved || "0h 0m"}</h2>
+      <p class="small">Time Saved</p>
+    </div>
+
+    <div class="card">
+      <h2>${data?.blockedVideos || 0}</h2>
+      <p class="small">Videos Blocked</p>
+    </div>
+
+    <div class="card">
+      <h2>${data?.focus || "0%"}</h2>
+      <p class="small">Focus Score</p>
+    </div>
+  `;
+
+  // ================= LINE CHART =================
+  const lineCtx = document.getElementById("lineChart");
+
+  lineChart = new Chart(lineCtx, {
+    type: "line",
+    data: {
+      labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+      datasets: [{
+        label: "Productivity",
+        data: data?.weekly || [60,70,65,80,90,85,95],
+        borderColor: "#ff0000",
+        tension: 0.4
+      }]
+    }
+  });
+
+  // ================= DOUGHNUT =================
+  const doughnutCtx = document.getElementById("doughnutChart");
+
+  doughnutChart = new Chart(doughnutCtx, {
+    type: "doughnut",
+    data: {
+      labels: ["Shorts","Clickbait","Ads","Others"],
+      datasets: [{
+        data: data?.blockedTypes || [35,25,20,20],
+        backgroundColor: ["#ff0000","#3b82f6","#22c55e","#f59e0b"]
+      }]
+    }
+  });
+
+  // ================= BAR CHART =================
+  const barCtx = document.getElementById("barChart");
+
+  barChart = new Chart(barCtx, {
+    type: "bar",
+    data: {
+      labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+      datasets: [{
+        label: "Blocked Videos",
+        data: data?.daily || [10,18,12,22,30,28,40],
+        backgroundColor: "#ff0000"
+      }]
+    }
+  });
+
+});
+</script>
+
+</body>
+</html>

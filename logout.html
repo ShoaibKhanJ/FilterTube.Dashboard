@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Logging out...</title>
+
+<link rel="icon" type="image/png" sizes="16x16" href="icon16.png">
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: #0b0f19;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.box {
+  text-align: center;
+  padding: 30px;
+  background: #111827;
+  border-radius: 12px;
+  border: 1px solid #2d2d3a;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #333;
+  border-top: 4px solid red;
+  border-radius: 50%;
+  margin: 15px auto;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0); }
+  100% { transform: rotate(360deg); }
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+  <h2>Logging you out...</h2>
+  <div class="spinner"></div>
+  <p>Please wait</p>
+</div>
+
+<script type="module">
+import { auth } from "./firebase.js";
+import { signOut } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+
+async function logout() {
+  try {
+    await signOut(auth);
+
+    // clear local storage
+    localStorage.clear();
+
+    // redirect to login
+    window.location.href = "login.html";
+
+  } catch (err) {
+    console.error(err);
+    alert("Logout failed: " + err.message);
+  }
+}
+
+// auto run
+logout();
+</script>
+
+</body>
+</html>
