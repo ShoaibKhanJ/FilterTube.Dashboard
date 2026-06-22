@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>FilterTube Loading...</title>
+
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: Arial;
+      background: #0f0f0f;
+      color: white;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>Loading FilterTube...</h2>
+
+  <script>
+    // STEP 1: check login state
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    // STEP 2: redirect logic
+    setTimeout(() => {
+      if (user && user.uid) {
+        // already logged in
+        window.location.href = "dashboard.html";
+      } else {
+        // not logged in
+        window.location.href = "login.html";
+      }
+    }, 800);
+  </script>
+</body>
+</html>
