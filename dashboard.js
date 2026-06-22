@@ -1,10 +1,8 @@
 import { auth, db } from "./firebase.js";
-
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
-import { ref, get } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+import { ref, onValue } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
 
-onAuthStateChanged(auth, async (user) => {
-
+onAuthStateChanged(auth, (user) => {
   if (!user) {
     window.location.href = "login.html";
     return;
@@ -12,38 +10,38 @@ onAuthStateChanged(auth, async (user) => {
 
   const uid = user.uid;
 
-  // ================= USER PROFILE =================
-  const userSnap = await get(ref(db, "users/" + uid + "/profile"));
-  if (userSnap.exists()) {
-    const userData = userSnap.val();
+  const userRef = ref(db, "users/" + uid);
 
-    document.getElementById("userName").textContent =
-      userData.name || "User";
+  // ================= REAL-TIME LISTENER =================
+  onValue(userRef, (snapshot) => {
+    if (!snapshot.exists()) return;
 
-    document.getElementById("userPhoto").src =
-      userData.photo || "https://i.pravatar.cc/100";
-  }
+    const data = snapshot.val();
 
-  // ================= PLAN =================
-  const planSnap = await get(ref(db, "users/" + uid + "/plan"));
-  if (planSnap.exists()) {
+    // PROFILE
+    if (data.profile) {
+      document.getElementById("userName").textContent =
+        data.profile.name || "User";
+
+      document.getElementById("userPhoto").src =
+        data.profile.photoURL || "https://i.pravatar.cc/100";
+    }
+
+    // PLAN
     document.getElementById("userPlan").textContent =
-      planSnap.val() || "Free Plan";
-  }
+      data.plan || "Free Plan";
 
-  // ================= ANALYTICS =================
-  const snap = await get(ref(db, "users/" + uid + "/analytics"));
+    // ANALYTICS
+    if (data.analytics) {
+      const cards = document.querySelectorAll(".grid .card");
 
-  if (!snap.exists()) return;
+      const a = data.analytics;
 
-  const data = snap.val();
+      if (cards[0]) cards[0].querySelector("h2").textContent = a.watchTime || "--";
+      if (cards[1]) cards[1].querySelector("h2").textContent = a.timeSaved || "--";
+      if (cards[2]) cards[2].querySelector("h2").textContent = a.blockedVideos || "--";
+      if (cards[3]) cards[3].querySelector("h2").textContent = a.focus || "--";
+    }
 
-  // update cards safely (DO NOT overwrite grid)
-  const cards = document.querySelectorAll(".grid .card");
-
-  if (cards[0]) cards[0].querySelector("h2").textContent = data.watchTime || "--";
-  if (cards[1]) cards[1].querySelector("h2").textContent = data.timeSaved || "--";
-  if (cards[2]) cards[2].querySelector("h2").textContent = data.blockedVideos || "--";
-  if (cards[3]) cards[3].querySelector("h2").textContent = data.focus || "--";
-
+  });
 });

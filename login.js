@@ -6,80 +6,85 @@ import {
   getRedirectResult
 } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
 
-import { ref, set, get } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+import {
+  ref,
+  set,
+  get
+} from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
 
 const btn = document.getElementById("googleLogin");
 
-// ===============================
-// HANDLE REDIRECT RESULT (IMPORTANT)
-// ===============================
+/* ===============================
+   REDIRECT RESULT HANDLER
+================================ */
 getRedirectResult(auth)
   .then(async (result) => {
     if (result?.user) {
       await handleUser(result.user);
     }
   })
-  .catch((err) => {
-    console.error("Redirect error:", err);
-  });
+  .catch((err) => console.error("Redirect error:", err));
 
-// ===============================
-// BUTTON LOGIN
-// ===============================
+/* ===============================
+   LOGIN BUTTON
+================================ */
 btn?.addEventListener("click", async () => {
   try {
-    console.log("Login started...");
-
     const result = await signInWithPopup(auth, provider);
     await handleUser(result.user);
 
   } catch (err) {
-    console.warn("Popup failed, switching to redirect...", err.code);
-
-    // 🔥 fallback (fix popup blocked issue)
+    console.warn("Popup blocked → redirect login used", err.code);
     signInWithRedirect(auth, provider);
   }
 });
 
-// ===============================
-// USER HANDLER (CLEAN + SAFE)
-// ===============================
+/* ===============================
+   USER HANDLER
+================================ */
 async function handleUser(user) {
   try {
     const uid = user.uid;
 
-    const userRef = ref(db, "users/" + uid + "/profile");
+    const userRef = ref(db, "users/" + uid);
 
-    // check if user already exists
     const snap = await get(userRef);
 
     if (!snap.exists()) {
-      await set(ref(db, "users/" + uid + "/profile"), {
-        name: user.displayName || "User",
-        email: user.email || "",
-        photo: user.photoURL || ""
-      });
-
-      await set(ref(db, "users/" + uid + "/settings"), {
-        filterEnabled: true,
-        hideShorts: false,
-        focusMode: false
-      });
-
-      await set(ref(db, "users/" + uid + "/analytics"), {
-        blockedVideos: 0,
-        timeSaved: 0
+      await set(userRef, {
+        profile: {
+          name: user.displayName || "User",
+          email: user.email || "",
+          photo: user.photoURL || ""
+        },
+        settings: {
+          filterEnabled: true,
+          hideShorts: false,
+          focusMode: false
+        },
+        analytics: {
+          blockedVideos: 0,
+          timeSaved: 0
+        }
       });
     }
 
+    // ===============================
+    // EXTENSION SYNC (IMPORTANT)
+    // ===============================
+
     localStorage.setItem("uid", uid);
 
-    console.log("Login success:", uid);
+    if (typeof chrome !== "undefined" && chrome.storage) {
+      chrome.storage.local.set({ uid });
+    }
+
+    console.log("Login successful:", uid);
 
     window.location.href = "dashboard.html";
 
   } catch (err) {
-    console.error("User setup error:", err);
+    console.error("handleUser error:", err);
     alert(err.message);
   }
 }
